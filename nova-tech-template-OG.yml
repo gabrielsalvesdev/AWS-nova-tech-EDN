@@ -215,22 +215,39 @@ Resources:
     Properties:
       SourceServerID: !Ref WebInstance
       RecoveryInstanceType: t3.micro
-      ImageId: ami-0c55b159cbfafe1f0
-      KeyName: !Ref KeyName
-      NetworkInterfaces:
-        - DeviceIndex: 0
-          GroupSet:
-            - !Ref WebSecurityGroup
-          SubnetId: !Ref PrivateSubnet
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          # Comandos de configuração da instância EC2 aqui
+      ImageId: ami-0c55b159cbfafe1f0  # Substitua pela AMI desejada para a região de recuperação de desastre
+      SubnetId: !Ref PrivateSubnetOregon
+      SecurityGroupIds:
+        - !Ref WebSecurityGroupOregon
       Tags:
         - Key: Name
           Value: !Sub '${ProjectName}-web-instance-oregon'
 
+  PrivateSubnetOregon:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: us-west-2a  # Substitua pela zona de disponibilidade desejada na região Oregon
+      CidrBlock: 10.0.3.0/24  # Substitua pelo bloco CIDR desejado para a sub-rede privada na região Oregon
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-private-subnet-oregon'
+
+  WebSecurityGroupOregon:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Grupo de segurança para as instâncias EC2 na região Oregon
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-web-security-group-oregon'
+
 Outputs:
   WebsiteURLOregon:
     Description: URL da aplicação web na região Oregon
-    Value: !Sub 'http://${WebLoadBalancer.DNSName}'
+    Value: !Sub 'http://${WebLoadBalancerOregon.DNSName}'
