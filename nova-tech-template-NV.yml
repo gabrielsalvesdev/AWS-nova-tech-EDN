@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Template para a aplicação web da NovaTech
+Description: Template para a aplicação web da NovaTech - Região Principal (Norte da Virgínia)
 
 Parameters:
   ProjectName:
@@ -7,22 +7,18 @@ Parameters:
     Default: 'novatech'
 
   VpcCIDR:
-    Description: Endereço IP da VPC
     Type: String
     Default: 10.0.0.0/16
   
   PublicSubnetCIDR:
-    Description: Endereço IP da subnet pública
     Type: String
     Default: 10.0.1.0/24
   
   PrivateSubnetCIDR:
-    Description: Endereço IP da subnet privada
-    Type: String
+    Type: String 
     Default: 10.0.2.0/24
 
   KeyName:
-    Description: Nome da chave SSH para acesso às instâncias EC2
     Type: AWS::EC2::KeyPair::KeyName
 
   DbUsername:
@@ -33,7 +29,6 @@ Parameters:
     NoEcho: true
 
   BackupRetentionPeriod:
-    Description: Número de dias para reter backups automáticos
     Type: Number
     Default: 7
 
@@ -113,7 +108,6 @@ Resources:
         - Key: Name
           Value: !Sub '${ProjectName}-private-route-table'
 
-  PrivateSubnetRouteTable 
   PrivateSubnetRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -123,16 +117,12 @@ Resources:
   WebSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Acesso à instância web
+      GroupDescription: Acesso à aplicação web
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
@@ -190,7 +180,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t3.micro
-      ImageId: ami-0c55b159cbfafe1f0  # Substitua pela AMI desejada para a região principal
+      ImageId: ami-0c55b159cbfafe1f0
       KeyName: !Ref KeyName
       NetworkInterfaces:
         - DeviceIndex: 0
@@ -225,8 +215,6 @@ Resources:
       VPCSecurityGroups:
         - !Ref DatabaseSecurityGroup
       BackupRetentionPeriod: !Ref BackupRetentionPeriod
-      PreferredBack 
-
       PreferredBackupWindow: '01:00-02:00'
       PreferredMaintenanceWindow: 'Sun:03:00-Sun:04:00'
       MultiAZ: true
@@ -234,68 +222,20 @@ Resources:
         - Key: Name
           Value: !Sub '${ProjectName}-database'
 
-  WebACL:
-    Type: AWS::WAFv2::WebACL
-    Properties:
-      Name: !Sub '${ProjectName}-web-acl'
-      Scope: REGIONAL
-      Description: ACL para a aplicação web
-      DefaultAction:
-        Allow: {}
-      VisibilityConfig:
-        SampledRequestsEnabled: true
-        CloudWatchMetricsEnabled: true
-        MetricName: !Sub '${ProjectName}-web-acl-metric'
-      Rules:
-        - Name: AWSManagedRulesCommonRuleSet
-          Priority: 0
-          OverrideAction:
-            None: {}
-          VisibilityConfig:
-            SampledRequestsEnabled: true
-            CloudWatchMetricsEnabled: true
-            MetricName: AWSManagedRulesCommonRuleSet
-          Statement:
-            ManagedRuleGroupStatement:
-              VendorName: AWS
-              Name: AWSManagedRulesCommonRuleSet
-
   Route53HostedZone:
     Type: AWS::Route53::HostedZone
     Properties:
-      Name: !Sub '${ProjectName}.com'  # Substitua pelo nome do projeto
+      Name: !Sub '${ProjectName}.com'
 
   Route53RecordSet:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneName: !Ref Route53HostedZone
-      Name: !Sub 'www.${ProjectName}.com'  # Substitua pelo nome do projeto
+      Name: !Sub 'www.${ProjectName}.com'
       Type: A
       AliasTarget:
-        HostedZoneId: !GetAtt WebLoadBalancer.CanonicalHostedZoneNameID
+        HostedZoneId: !GetAtt WebLoadBalancer.CanonicalHostedZoneID
         DNSName: !GetAtt WebLoadBalancer.DNSName
-
-  DRSReplicationConfiguration:
-    Type: AWS::DRS::ReplicationConfiguration
-    Properties:
-      SourceServerID: !Ref WebInstance
-      RecoveryInstanceType: t3.micro
-      # Substitua pela AMI desejada para a região de recuperação de desastre
-      # Caso a AMI não esteja disponível em ambas as regiões, ajuste conforme necessário
-      ImageId: ami-0c55b159cbfafe1f0  
-      KeyName: !Ref KeyName
-      NetworkInterfaces:
-        - DeviceIndex: 0
-          GroupSet:
-            - !Ref WebSecurityGroup
-          SubnetId: !Ref PrivateSubnet
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          # Comandos de configuração da instância EC2 aqui
-      Tags:
-        - Key: Name
-          Value: !Sub '${ProjectName}-web-instance'
 
 Outputs:
   WebsiteURL:
