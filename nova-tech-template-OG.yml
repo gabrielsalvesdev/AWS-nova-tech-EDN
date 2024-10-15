@@ -4,16 +4,16 @@ Description: Template para a aplicação web da NovaTech - Região Secundária (
 Parameters:
   ProjectName:
     Type: String
-    Default: 'novatech'
+    Default: novatech
 
   VpcCIDR:
     Type: String
     Default: 10.1.0.0/16
-  
+
   PublicSubnetCIDR:
     Type: String
     Default: 10.1.1.0/24
-  
+
   PrivateSubnetCIDR:
     Type: String
     Default: 10.1.2.0/24
@@ -30,14 +30,14 @@ Resources:
       EnableDnsSupport: true
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-vpc-oregon'
+          Value: !Sub ${ProjectName}-vpc-oregon
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-igw-oregon'
+          Value: !Sub ${ProjectName}-igw-oregon
 
   InternetGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -49,23 +49,27 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [0, !GetAZs '']
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
       CidrBlock: !Ref PublicSubnetCIDR
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-public-subnet-oregon'
+          Value: !Sub ${ProjectName}-public-subnet-oregon
 
   PrivateSubnet:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [0, !GetAZs '']
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
       CidrBlock: !Ref PrivateSubnetCIDR
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-private-subnet-oregon'
+          Value: !Sub ${ProjectName}-private-subnet-oregon
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -73,7 +77,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-public-route-table-oregon'
+          Value: !Sub ${ProjectName}-public-route-table-oregon
 
   PublicRoute:
     Type: AWS::EC2::Route
@@ -95,7 +99,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-private-route-table-oregon'
+          Value: !Sub ${ProjectName}-private-route-table-oregon
 
   PrivateSubnetRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -109,7 +113,7 @@ Resources:
       GroupDescription: Acesso à instância web na região Oregon
       VpcId: !Ref VPC
       SecurityGroupIngress:
-        - IpProtocol: tcp 
+        - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
@@ -119,7 +123,7 @@ Resources:
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-web-sg-oregon'
+          Value: !Sub ${ProjectName}-web-sg-oregon
 
   DatabaseSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -133,7 +137,7 @@ Resources:
           SourceSecurityGroupId: !Ref WebSecurityGroup
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-database-sg-oregon'
+          Value: !Sub ${ProjectName}-database-sg-oregon
 
   WebLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -144,7 +148,7 @@ Resources:
         - !Ref WebSecurityGroup
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-web-elb-oregon'
+          Value: !Sub ${ProjectName}-web-elb-oregon
 
   WebLoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -176,23 +180,23 @@ Resources:
       ImageId: ami-0c55b159cbfafe1f0
       KeyName: !Ref KeyName
       NetworkInterfaces:
-        - DeviceIndex: 0
+        - DeviceIndex: '0'
           GroupSet:
             - !Ref WebSecurityGroup
           SubnetId: !Ref PrivateSubnet
-      UserData:
-        Fn::Base64: !Sub |
+      UserData: !Base64
+        Fn::Sub: |
           #!/bin/bash
           # Comandos de configuração da instância EC2 aqui
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-web-instance'
+          Value: !Sub ${ProjectName}-web-instance
 
   DatabaseReplicationInstance:
     Type: AWS::DMS::ReplicationInstance
     Properties:
       AllocatedStorage: 20
-      EngineVersion: '3.4.6'
+      EngineVersion: 3.4.6
       MultiAZ: true
       PubliclyAccessible: false
       ReplicationInstanceClass: dms.t3.micro
@@ -201,7 +205,7 @@ Resources:
         - !Ref DatabaseSecurityGroup
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-database-replication-oregon'
+          Value: !Sub ${ProjectName}-database-replication-oregon
 
   DatabaseReplicationSubnetGroup:
     Type: AWS::DMS::ReplicationSubnetGroup
@@ -211,26 +215,26 @@ Resources:
         - !Ref PrivateSubnetOregon
 
   DRSReplicationConfiguration:
-    Type: AWS::DRS::ReplicationConfiguration
+    Type: AWS::EC2::Instance
     Properties:
       SourceServerID: !Ref WebInstance
-      RecoveryInstanceType: t3.micro
+      InstanceType: t3.micro
       SubnetId: !Ref PrivateSubnetOregon
       SecurityGroupIds:
         - !Ref WebSecurityGroupOregon
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-web-instance-oregon'
+          Value: !Sub ${ProjectName}-web-instance-oregon
 
   PrivateSubnetOregon:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: us-west-2a  # Substitua pela zona de disponibilidade desejada na região Oregon
-      CidrBlock: 10.0.3.0/24  # Substitua pelo bloco CIDR desejado para a sub-rede privada na região Oregon
+      AvailabilityZone: us-west-2a # Substitua pela zona de disponibilidade desejada na região Oregon
+      CidrBlock: 10.0.3.0/24 # Substitua pelo bloco CIDR desejado para a sub-rede privada na região Oregon
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-private-subnet-oregon'
+          Value: !Sub ${ProjectName}-private-subnet-oregon
 
   WebSecurityGroupOregon:
     Type: AWS::EC2::SecurityGroup
@@ -244,9 +248,4 @@ Resources:
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: !Sub '${ProjectName}-web-security-group-oregon'
-
-Outputs:
-  WebsiteURLOregon:
-    Description: URL da aplicação web na região Oregon
-    Value: !Sub 'http://${WebLoadBalancerOregon.DNSName}'
+          Value: !Sub ${ProjectName}-web-security-group-oregon
