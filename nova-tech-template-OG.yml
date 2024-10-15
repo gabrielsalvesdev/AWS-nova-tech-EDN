@@ -1,0 +1,236 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template para a aplicação web da NovaTech - Região Secundária (Oregon)
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: 'novatech'
+
+  VpcCIDR:
+    Type: String
+    Default: 10.1.0.0/16
+  
+  PublicSubnetCIDR:
+    Type: String
+    Default: 10.1.1.0/24
+  
+  PrivateSubnetCIDR:
+    Type: String
+    Default: 10.1.2.0/24
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-vpc-oregon'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-igw-oregon'
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: !Ref PublicSubnetCIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-public-subnet-oregon'
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: !Ref PrivateSubnetCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-private-subnet-oregon'
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-public-route-table-oregon'
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-private-route-table-oregon'
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      RouteTableId: !Ref PrivateRouteTable
+
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Acesso à instância web na região Oregon
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp 
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-web-sg-oregon'
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Acesso ao banco de dados na região Oregon
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref WebSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-database-sg-oregon'
+
+  WebLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets:
+        - !Ref PublicSubnet
+      SecurityGroups:
+        - !Ref WebSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-web-elb-oregon'
+
+  WebLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref WebLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref WebTargetGroup
+
+  WebTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VPC
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      HealthCheckPath: /
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 5
+
+  WebInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: ami-0c55b159cbfafe1f0
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          GroupSet:
+            - !Ref WebSecurityGroup
+          SubnetId: !Ref PrivateSubnet
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          # Comandos de configuração da instância EC2 aqui
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-web-instance-oregon'
+
+  DatabaseReplicationInstance:
+    Type: AWS::DMS::ReplicationInstance
+    Properties:
+      AllocatedStorage: 20
+      EngineVersion: 3.4.6
+      MultiAZ: true
+      PubliclyAccessible: false
+      ReplicationInstanceClass: dms.t3.micro
+      ReplicationSubnetGroupIdentifier: !Ref DatabaseReplicationSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref DatabaseSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-database-replication-oregon'
+
+  DatabaseReplicationSubnetGroup:
+    Type: AWS::DMS::ReplicationSubnetGroup
+    Properties:
+      ReplicationSubnetGroupDescription: Grupo de sub-redes para a replicação do banco de dados na região Oregon
+      SubnetIds:
+        - !Ref PrivateSubnet
+
+  DRSReplicationConfiguration:
+    Type: AWS::DRS::ReplicationConfiguration
+    Properties:
+      SourceServerID: !Ref WebInstance
+      RecoveryInstanceType: t3.micro
+      ImageId: ami-0c55b159cbfafe1f0
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          GroupSet:
+            - !Ref WebSecurityGroup
+          SubnetId: !Ref PrivateSubnet
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          # Comandos de configuração da instância EC2 aqui
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-web-instance-oregon'
+
+Outputs:
+  WebsiteURLOregon:
+    Description: URL da aplicação web na região Oregon
+    Value: !Sub 'http://${WebLoadBalancer.DNSName}'
