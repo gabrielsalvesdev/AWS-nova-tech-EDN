@@ -1,12 +1,11 @@
 <p align="left"><img src="http://img.shields.io/static/v1?label=STATUS&message=EM%20DESENVOLVIMENTO&color=GREEN&style=for-the-badge"/></p>
 
-# 💰AWS - Nova Tech
+# ☁️AWS - Nova Tech
 
 
 - ## **📌 Resumo do projeto** 
 
 A startup Nova Tech está criando um e-commerce. O time responsável pela infraestrutura decidiu contratar uma consultoria para evoluir sua arquitetura, focando em garantir alta confiabilidade e uma estratégia eficaz de recuperação de desastres. Com o orçamento disponível, precisamos criar uma solução inovadora e resistente, que atenda bem às necessidades do cliente e suporte o funcionamento de seu e-commerce em plena capacidade, garantindo a recuperação do sistema em caso de falhas.
-
 
 
 
