@@ -188,23 +188,11 @@ Resources:
         - Key: Name
           Value: !Sub '${ProjectName}-web-instance'
 
-  DRSReplicationConfiguration:
-    Type: AWS::DRS::ReplicationConfiguration
-    Properties:
-      SourceServerID: !Ref WebInstance
-      RecoveryInstanceType: t3.micro
-      SubnetId: !Ref PrivateSubnetOregon
-      SecurityGroupIds:
-        - !Ref WebSecurityGroupOregon
-      Tags:
-        - Key: Name
-          Value: !Sub '${ProjectName}-web-instance-oregon'
-
   DatabaseReplicationInstance:
     Type: AWS::DMS::ReplicationInstance
     Properties:
       AllocatedStorage: 20
-      EngineVersion: 3.4.6
+      EngineVersion: '3.4.6'
       MultiAZ: true
       PubliclyAccessible: false
       ReplicationInstanceClass: dms.t3.micro
@@ -220,7 +208,7 @@ Resources:
     Properties:
       ReplicationSubnetGroupDescription: Grupo de sub-redes para a replicação do banco de dados na região Oregon
       SubnetIds:
-        - !Ref PrivateSubnet
+        - !Ref PrivateSubnetOregon
 
   DRSReplicationConfiguration:
     Type: AWS::DRS::ReplicationConfiguration
