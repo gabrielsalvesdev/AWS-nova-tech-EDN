@@ -25,9 +25,6 @@ Projeto em grupo de Artur Afonso, Gabriel Sousa, Thaise Oliveira.
  
   - https://docs.google.com/document/d/13M8TfyfSPuvjvlT9qYi21UE-1FwDbPblSv-lM_ynH74/edit?tab=t.0#heading=h.i9k53jgugazv
 
-- ## **🔗 Links de interesse** 
-  - [ Merlin AI | Peça à IA para pesquisar, escrever e resumir em 1 clique (getmerlin.in)](https://www.getmerlin.in/pt) - auxílio na construção do codigo para fase de implementação
-
 
 - ## **📚 Referências** 
   - Material didático disponibilizado pela Escola da Nuvem.
