@@ -11,7 +11,7 @@ A startup Nova Tech está criando um e-commerce. O time responsável pela infrae
 
 - ## **🎯 Objetivo**
 
-Projetar e implementar uma solução de infraestrutura em nuvem que seja capaz de suportar o crescimento de uma empresa de e-commerce, focando em escalabilidade e recuperação de desastres. Usar os recursos da melhor forma possível, com foco nas melhores ferramentas AWS e na segurança e continuidade do negócio, mesmo em situações difíceis.
+Projetar e implementar uma solução de infraestrutura em nuvem que seja capaz de suportar o crescimento de uma empresa de e-commerce, focando em Confiabilidade e Recuperação de Desastres. Usar os recursos da melhor forma possível, alinhando com as melhores práticas e ferramentas da Amazon Web Services (AWS) e na redundância e continuidade do negócio mesmo em situações difíceis.
 
 
 
